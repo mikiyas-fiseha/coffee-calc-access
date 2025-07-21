@@ -14,7 +14,135 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      coffee_grades: {
+        Row: {
+          created_at: string
+          grade_name: string
+          id: string
+          lower_price: number
+          updated_at: string
+          upper_price: number
+        }
+        Insert: {
+          created_at?: string
+          grade_name: string
+          id?: string
+          lower_price: number
+          updated_at?: string
+          upper_price: number
+        }
+        Update: {
+          created_at?: string
+          grade_name?: string
+          id?: string
+          lower_price?: number
+          updated_at?: string
+          upper_price?: number
+        }
+        Relationships: []
+      }
+      payment_plans: {
+        Row: {
+          created_at: string
+          duration: string
+          id: string
+          months: number
+          price: number
+        }
+        Insert: {
+          created_at?: string
+          duration: string
+          id?: string
+          months: number
+          price: number
+        }
+        Update: {
+          created_at?: string
+          duration?: string
+          id?: string
+          months?: number
+          price?: number
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          device_id: string | null
+          id: string
+          is_paid: boolean
+          mobile_number: string
+          name: string
+          payment_status: Database["public"]["Enums"]["payment_status"]
+          role: Database["public"]["Enums"]["user_role"]
+          selected_plan: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_id?: string | null
+          id?: string
+          is_paid?: boolean
+          mobile_number: string
+          name: string
+          payment_status?: Database["public"]["Enums"]["payment_status"]
+          role?: Database["public"]["Enums"]["user_role"]
+          selected_plan?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device_id?: string | null
+          id?: string
+          is_paid?: boolean
+          mobile_number?: string
+          name?: string
+          payment_status?: Database["public"]["Enums"]["payment_status"]
+          role?: Database["public"]["Enums"]["user_role"]
+          selected_plan?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      samples: {
+        Row: {
+          created_at: string
+          grade: string
+          grn: string
+          id: string
+          image_url: string
+          owner_name: string
+          total_value: number
+          upload_date: string
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string
+          grade: string
+          grn: string
+          id?: string
+          image_url: string
+          owner_name: string
+          total_value: number
+          upload_date?: string
+          uploaded_by: string
+        }
+        Update: {
+          created_at?: string
+          grade?: string
+          grn?: string
+          id?: string
+          image_url?: string
+          owner_name?: string
+          total_value?: number
+          upload_date?: string
+          uploaded_by?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +151,8 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      payment_status: "unpaid" | "pending" | "paid"
+      user_role: "normal" | "admin" | "super_admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +279,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      payment_status: ["unpaid", "pending", "paid"],
+      user_role: ["normal", "admin", "super_admin"],
+    },
   },
 } as const

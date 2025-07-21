@@ -1,12 +1,52 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import React, { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import AuthPage from './AuthPage';
+import PaymentPlansPage from './PaymentPlansPage';
+import BottomNavigation from '@/components/BottomNavigation';
+import CalculatorTab from '@/components/tabs/CalculatorTab';
+import DisplayTab from '@/components/tabs/DisplayTab';
+import InfoTab from '@/components/tabs/InfoTab';
+import AdminTab from '@/components/tabs/AdminTab';
 
 const Index = () => {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+  const { session, user, profile, loading } = useAuth();
+  const [activeTab, setActiveTab] = useState('calculator');
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
+    );
+  }
+
+  if (!session || !user) {
+    return <AuthPage />;
+  }
+
+  if (profile && !profile.is_paid && profile.payment_status !== 'pending') {
+    return <PaymentPlansPage />;
+  }
+
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'calculator':
+        return <CalculatorTab />;
+      case 'display':
+        return <DisplayTab />;
+      case 'info':
+        return <InfoTab />;
+      case 'admin':
+        return <AdminTab />;
+      default:
+        return <CalculatorTab />;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      {renderTabContent()}
+      <BottomNavigation activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
   );
 };
