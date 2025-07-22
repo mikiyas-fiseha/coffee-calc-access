@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import AuthPage from './AuthPage';
 import PaymentPlansPage from './PaymentPlansPage';
@@ -9,8 +9,15 @@ import InfoTab from '@/components/tabs/InfoTab';
 import AdminTab from '@/components/tabs/AdminTab';
 
 const Index = () => {
-  const { session, user, profile, loading } = useAuth();
+  const { session, user, profile, loading, refreshProfile } = useAuth();
   const [activeTab, setActiveTab] = useState('calculator');
+
+  // Refresh profile on mount to ensure we have the latest data
+  useEffect(() => {
+    if (user && !loading) {
+      refreshProfile();
+    }
+  }, [user, loading, refreshProfile]);
 
   if (loading) {
     return (
