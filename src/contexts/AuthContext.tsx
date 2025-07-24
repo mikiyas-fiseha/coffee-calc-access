@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -96,47 +97,84 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   useEffect(() => {
+    let mounted = true;
+
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!mounted) return;
+
+        console.log('Auth state change:', event, session?.user?.id);
+        
         setSession(session);
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          // Generate device ID and update profile
-          const deviceId = generateDeviceId();
-          await updateDeviceId(session.user.id, deviceId);
-          
-          // Fetch user profile
-          const profileData = await fetchProfile(session.user.id);
-          setProfile(profileData);
+          // Only update device ID and fetch profile after a slight delay to avoid conflicts
+          setTimeout(async () => {
+            if (!mounted) return;
+            
+            try {
+              // Only generate new device ID on sign in, not on token refresh
+              if (event === 'SIGNED_IN') {
+                const deviceId = generateDeviceId();
+                await updateDeviceId(session.user.id, deviceId);
+              }
+              
+              // Fetch user profile
+              const profileData = await fetchProfile(session.user.id);
+              if (mounted) {
+                setProfile(profileData);
+                setLoading(false);
+              }
+            } catch (error) {
+              console.error('Error in auth state change handler:', error);
+              if (mounted) {
+                setLoading(false);
+              }
+            }
+          }, 100);
         } else {
           setProfile(null);
+          setLoading(false);
         }
-
-        setLoading(false);
       }
     );
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return;
+      
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
+        // Fetch profile for existing session without updating device ID
         setTimeout(async () => {
-          const deviceId = generateDeviceId();
-          await updateDeviceId(session.user.id, deviceId);
-          const profileData = await fetchProfile(session.user.id);
-          setProfile(profileData);
-          setLoading(false);
+          if (!mounted) return;
+          
+          try {
+            const profileData = await fetchProfile(session.user.id);
+            if (mounted) {
+              setProfile(profileData);
+              setLoading(false);
+            }
+          } catch (error) {
+            console.error('Error fetching existing profile:', error);
+            if (mounted) {
+              setLoading(false);
+            }
+          }
         }, 0);
       } else {
         setLoading(false);
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signUp = async (name: string, mobileNumber: string, password: string) => {
