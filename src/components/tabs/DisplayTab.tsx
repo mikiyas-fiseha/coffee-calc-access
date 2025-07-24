@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Search, Grid3X3, Grid2X2, Grid, Lock, Calendar, User, DollarSign, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Grid3X3, Grid2X2, Grid, Lock, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface Sample {
@@ -226,22 +226,6 @@ const DisplayTab = () => {
                       loading="lazy"
                     />
                   </div>
-                  <CardContent className="p-3">
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <Badge variant="secondary" className="text-xs">
-                          {sample.grn}
-                        </Badge>
-                        <Badge variant="outline" className="text-xs">
-                          {sample.grade}
-                        </Badge>
-                      </div>
-                      <p className="text-sm font-medium truncate">{sample.owner_name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(sample.upload_date).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </CardContent>
                 </Card>
               </DialogTrigger>
               
@@ -270,47 +254,13 @@ const DisplayTab = () => {
                   </DialogTitle>
                 </DialogHeader>
                 
-                <div className="flex-1 flex gap-6 overflow-hidden">
-                  <div className="flex-1 bg-muted rounded-lg overflow-hidden">
-                    <img
-                      src={selectedImage?.image_url}
-                      alt={`Sample ${selectedImage?.grn}`}
-                      className="w-full h-full object-contain"
-                      style={{ userSelect: 'none', pointerEvents: 'none' }}
-                    />
-                  </div>
-                  
-                  <div className="w-80 space-y-4 overflow-y-auto">
-                    <Card>
-                      <CardContent className="p-4 space-y-3">
-                        <div className="flex items-center gap-2">
-                          <Badge className="bg-primary">
-                            {selectedImage?.grn}
-                          </Badge>
-                          <Badge variant="outline">
-                            {selectedImage?.grade}
-                          </Badge>
-                        </div>
-                        
-                        <div className="space-y-2 text-sm">
-                          <div className="flex items-center gap-2">
-                            <User className="h-4 w-4 text-muted-foreground" />
-                            <span>{selectedImage?.owner_name}</span>
-                          </div>
-                          
-                          <div className="flex items-center gap-2">
-                            <DollarSign className="h-4 w-4 text-muted-foreground" />
-                            <span>{selectedImage?.total_value.toLocaleString()} Birr</span>
-                          </div>
-                          
-                          <div className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4 text-muted-foreground" />
-                            <span>{new Date(selectedImage?.upload_date || '').toLocaleDateString()}</span>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
+                <div className="flex-1 bg-muted rounded-lg overflow-hidden">
+                  <img
+                    src={selectedImage?.image_url}
+                    alt={`Sample ${selectedImage?.grn}`}
+                    className="w-full h-full object-contain"
+                    style={{ userSelect: 'none', pointerEvents: 'none' }}
+                  />
                 </div>
               </DialogContent>
             </Dialog>

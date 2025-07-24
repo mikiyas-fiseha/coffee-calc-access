@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Upload, Image, Camera } from 'lucide-react';
+import { Upload, Image, Camera, Plus, X, Trash2 } from 'lucide-react';
 
 const UploadSample = () => {
   const [formData, setFormData] = useState({
@@ -16,9 +16,10 @@ const UploadSample = () => {
     ownerName: '',
     date: new Date().toISOString().split('T')[0],
   });
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [bulkMode, setBulkMode] = useState(false);
   
   const { user } = useAuth();
   const { toast } = useToast();
@@ -29,15 +30,30 @@ const UploadSample = () => {
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onload = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    const files = e.target.files;
+    if (files) {
+      const filesArray = Array.from(files);
+      setImageFiles(prev => [...prev, ...filesArray]);
+      
+      // Create previews for new files
+      filesArray.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          setImagePreviews(prev => [...prev, reader.result as string]);
+        };
+        reader.readAsDataURL(file);
+      });
     }
+  };
+
+  const removeImage = (index: number) => {
+    setImageFiles(prev => prev.filter((_, i) => i !== index));
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const clearAllImages = () => {
+    setImageFiles([]);
+    setImagePreviews([]);
   };
 
   const uploadToCloudinary = async (file: File): Promise<string> => {
@@ -70,11 +86,11 @@ const UploadSample = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!imageFile || !user) {
+    if (imageFiles.length === 0 || !user) {
       toast({
         variant: "destructive",
         title: "Missing Information",
-        description: "Please fill all fields and select an image.",
+        description: "Please select at least one image.",
       });
       return;
     }
@@ -82,27 +98,35 @@ const UploadSample = () => {
     setUploading(true);
 
     try {
-      // Upload image to Cloudinary
-      const imageUrl = await uploadToCloudinary(imageFile);
+      const uploadPromises = imageFiles.map(async (file) => {
+        // Upload image to Cloudinary
+        const imageUrl = await uploadToCloudinary(file);
 
-      // Save sample data to Supabase
-      const { error } = await supabase
-        .from('samples')
-        .insert({
-          grn: formData.grn,
-          grade: formData.grade,
-          total_value: parseFloat(formData.totalValue),
-          owner_name: formData.ownerName,
-          image_url: imageUrl,
-          uploaded_by: user.id,
-          upload_date: formData.date,
-        });
+        // Save sample data to Supabase
+        return supabase
+          .from('samples')
+          .insert({
+            grn: formData.grn || null,
+            grade: formData.grade || null,
+            total_value: formData.totalValue ? parseFloat(formData.totalValue) : null,
+            owner_name: formData.ownerName || null,
+            image_url: imageUrl,
+            uploaded_by: user.id,
+            upload_date: formData.date,
+          });
+      });
 
-      if (error) throw error;
+      const results = await Promise.all(uploadPromises);
+      
+      // Check for any errors
+      const errors = results.filter(result => result.error);
+      if (errors.length > 0) {
+        throw new Error(`${errors.length} uploads failed`);
+      }
 
       toast({
-        title: "Sample Uploaded",
-        description: "Coffee sample has been uploaded successfully!",
+        title: "Samples Uploaded",
+        description: `${imageFiles.length} coffee sample${imageFiles.length > 1 ? 's' : ''} uploaded successfully!`,
       });
 
       // Reset form
@@ -113,15 +137,15 @@ const UploadSample = () => {
         ownerName: '',
         date: new Date().toISOString().split('T')[0],
       });
-      setImageFile(null);
-      setImagePreview(null);
+      setImageFiles([]);
+      setImagePreviews([]);
 
     } catch (error) {
       console.error('Upload error:', error);
       toast({
         variant: "destructive",
         title: "Upload Failed",
-        description: "Failed to upload sample. Please try again.",
+        description: "Failed to upload samples. Please try again.",
       });
     } finally {
       setUploading(false);
@@ -141,38 +165,80 @@ const UploadSample = () => {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Mode Toggle */}
+          <div className="flex items-center gap-4">
+            <Button
+              type="button"
+              variant={!bulkMode ? "default" : "outline"}
+              onClick={() => setBulkMode(false)}
+              size="sm"
+            >
+              Single Upload
+            </Button>
+            <Button
+              type="button"
+              variant={bulkMode ? "default" : "outline"}
+              onClick={() => setBulkMode(true)}
+              size="sm"
+            >
+              Bulk Upload
+            </Button>
+          </div>
+
           {/* Image Upload */}
           <div className="space-y-2">
-            <Label htmlFor="image">Sample Image</Label>
+            <Label htmlFor="image">Sample Image{bulkMode ? 's' : ''}</Label>
             <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6">
-              {imagePreview ? (
+              {imagePreviews.length > 0 ? (
                 <div className="space-y-4">
-                  <img
-                    src={imagePreview}
-                    alt="Preview"
-                    className="w-full h-48 object-cover rounded-lg"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setImageFile(null);
-                      setImagePreview(null);
-                    }}
-                  >
-                    Remove Image
-                  </Button>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {imagePreviews.map((preview, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={preview}
+                          alt={`Preview ${index + 1}`}
+                          className="w-full h-32 object-cover rounded-lg"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => removeImage(index)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={clearAllImages}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Clear All
+                    </Button>
+                    <Button type="button" variant="outline" size="sm" asChild>
+                      <label htmlFor="image" className="cursor-pointer">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add More
+                      </label>
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <div className="text-center">
                   <Camera className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <p className="text-sm text-muted-foreground mb-4">
-                    Click to upload sample image
+                    Click to upload sample image{bulkMode ? 's' : ''}
                   </p>
                   <Button type="button" variant="outline" asChild>
                     <label htmlFor="image" className="cursor-pointer">
                       <Image className="h-4 w-4 mr-2" />
-                      Choose Image
+                      Choose Image{bulkMode ? 's' : ''}
                     </label>
                   </Button>
                 </div>
@@ -181,9 +247,9 @@ const UploadSample = () => {
                 id="image"
                 type="file"
                 accept="image/*"
+                multiple={bulkMode}
                 onChange={handleImageChange}
                 className="hidden"
-                required
               />
             </div>
           </div>
@@ -191,31 +257,29 @@ const UploadSample = () => {
           {/* Form Fields */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="grn">GRN</Label>
+              <Label htmlFor="grn">GRN <span className="text-muted-foreground">(Optional)</span></Label>
               <Input
                 id="grn"
                 name="grn"
                 value={formData.grn}
                 onChange={handleInputChange}
                 placeholder="Enter GRN"
-                required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="grade">Grade</Label>
+              <Label htmlFor="grade">Grade <span className="text-muted-foreground">(Optional)</span></Label>
               <Input
                 id="grade"
                 name="grade"
                 value={formData.grade}
                 onChange={handleInputChange}
                 placeholder="e.g., LUBPAA1"
-                required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="totalValue">Total Value (Birr)</Label>
+              <Label htmlFor="totalValue">Total Value (Birr) <span className="text-muted-foreground">(Optional)</span></Label>
               <Input
                 id="totalValue"
                 name="totalValue"
@@ -224,19 +288,17 @@ const UploadSample = () => {
                 value={formData.totalValue}
                 onChange={handleInputChange}
                 placeholder="Enter total value"
-                required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="ownerName">Owner Name</Label>
+              <Label htmlFor="ownerName">Owner Name <span className="text-muted-foreground">(Optional)</span></Label>
               <Input
                 id="ownerName"
                 name="ownerName"
                 value={formData.ownerName}
                 onChange={handleInputChange}
                 placeholder="Enter owner name"
-                required
               />
             </div>
 
@@ -256,9 +318,9 @@ const UploadSample = () => {
           <Button
             type="submit"
             className="w-full bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90"
-            disabled={uploading}
+            disabled={uploading || imageFiles.length === 0}
           >
-            {uploading ? 'Uploading...' : 'Upload Sample'}
+            {uploading ? 'Uploading...' : `Upload ${imageFiles.length} Sample${imageFiles.length !== 1 ? 's' : ''}`}
           </Button>
         </form>
       </CardContent>
