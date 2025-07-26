@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_settings: {
+        Row: {
+          created_at: string
+          id: string
+          setting_key: string
+          setting_value: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          setting_key: string
+          setting_value?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          setting_key?: string
+          setting_value?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       coffee_grades: {
         Row: {
           created_at: string
@@ -118,6 +142,7 @@ export type Database = {
           total_value: number
           upload_date: string
           uploaded_by: string
+          warehouse: string | null
         }
         Insert: {
           created_at?: string
@@ -129,6 +154,7 @@ export type Database = {
           total_value: number
           upload_date?: string
           uploaded_by: string
+          warehouse?: string | null
         }
         Update: {
           created_at?: string
@@ -140,6 +166,7 @@ export type Database = {
           total_value?: number
           upload_date?: string
           uploaded_by?: string
+          warehouse?: string | null
         }
         Relationships: []
       }
