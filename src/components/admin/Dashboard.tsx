@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
-import { BarChart3, Users, DollarSign, Clock } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { BarChart3, Users, DollarSign, Clock, Settings } from 'lucide-react';
 
 const Dashboard = () => {
   const [stats, setStats] = useState({
@@ -11,10 +16,18 @@ const Dashboard = () => {
     estimatedRevenue: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [showFiltersToUsers, setShowFiltersToUsers] = useState(true);
+  const [settingsLoading, setSettingsLoading] = useState(false);
+  
+  const { profile } = useAuth();
+  const { toast } = useToast();
 
   useEffect(() => {
     fetchStats();
-  }, []);
+    if (profile?.role === 'super_admin') {
+      fetchFilterSettings();
+    }
+  }, [profile]);
 
   const fetchStats = async () => {
     try {
@@ -52,6 +65,52 @@ const Dashboard = () => {
       console.error('Error fetching stats:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchFilterSettings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('admin_settings')
+        .select('setting_value')
+        .eq('setting_key', 'show_filters_to_users')
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching filter settings:', error);
+        return;
+      }
+
+      setShowFiltersToUsers(data?.setting_value ?? true);
+    } catch (error) {
+      console.error('Error fetching filter settings:', error);
+    }
+  };
+
+  const updateFilterSettings = async (showFilters: boolean) => {
+    setSettingsLoading(true);
+    try {
+      const { error } = await supabase
+        .from('admin_settings')
+        .update({ setting_value: showFilters })
+        .eq('setting_key', 'show_filters_to_users');
+
+      if (error) throw error;
+
+      setShowFiltersToUsers(showFilters);
+      toast({
+        title: "Settings Updated",
+        description: `Filter visibility ${showFilters ? 'enabled' : 'disabled'} for regular users.`,
+      });
+    } catch (error) {
+      console.error('Error updating filter settings:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update settings. Please try again.",
+      });
+    } finally {
+      setSettingsLoading(false);
     }
   };
 
@@ -109,6 +168,37 @@ const Dashboard = () => {
           );
         })}
       </div>
+
+      {/* Super Admin Settings */}
+      {profile?.role === 'super_admin' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Settings className="h-5 w-5" />
+              Super Admin Settings
+            </CardTitle>
+            <CardDescription>
+              Control application settings and user experience
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="show-filters">Show Filters to Users</Label>
+                <p className="text-sm text-muted-foreground">
+                  Allow regular users to see filter options (warehouse, etc.) in the Display section
+                </p>
+              </div>
+              <Switch
+                id="show-filters"
+                checked={showFiltersToUsers}
+                onCheckedChange={updateFilterSettings}
+                disabled={settingsLoading}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

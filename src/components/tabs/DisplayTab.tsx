@@ -4,9 +4,10 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Search, Grid3X3, Grid2X2, Grid, Lock, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Grid3X3, Grid2X2, Grid, Lock, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface Sample {
@@ -15,6 +16,7 @@ interface Sample {
   grade: string;
   total_value: number;
   owner_name: string;
+  warehouse: string;
   image_url: string;
   upload_date: string;
   created_at: string;
@@ -24,35 +26,40 @@ const DisplayTab = () => {
   const [samples, setSamples] = useState<Sample[]>([]);
   const [filteredSamples, setFilteredSamples] = useState<Sample[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [warehouseFilter, setWarehouseFilter] = useState('');
   const [columns, setColumns] = useState(2);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState<Sample | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [showFilters, setShowFilters] = useState(true);
   const { profile } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
     if (profile?.is_paid) {
       fetchSamples();
+      fetchFilterVisibility();
     } else {
       setLoading(false);
     }
   }, [profile]);
 
   useEffect(() => {
-    // Filter samples based on search term
-    const filtered = samples.filter(sample =>
-      sample.grn.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    // Filter samples based on search term and warehouse
+    const filtered = samples.filter(sample => {
+      const matchesSearch = sample.grn.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesWarehouse = !warehouseFilter || sample.warehouse === warehouseFilter;
+      return matchesSearch && matchesWarehouse;
+    });
     setFilteredSamples(filtered);
-  }, [samples, searchTerm]);
+  }, [samples, searchTerm, warehouseFilter]);
 
   const fetchSamples = async () => {
     try {
       const { data, error } = await supabase
         .from('samples')
         .select('*')
-        .order('created_at', { ascending: true }); // FIFO order
+        .order('upload_date', { ascending: false }); // Most recent first
 
       if (error) throw error;
       setSamples(data || []);
@@ -66,6 +73,28 @@ const DisplayTab = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchFilterVisibility = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('admin_settings')
+        .select('setting_value')
+        .eq('setting_key', 'show_filters_to_users')
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching filter visibility:', error);
+        return;
+      }
+
+      // Only show filters to regular users if setting allows it
+      // Admins and super admins always see filters
+      const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin';
+      setShowFilters(isAdmin || (data?.setting_value ?? true));
+    } catch (error) {
+      console.error('Error fetching filter visibility:', error);
     }
   };
 
@@ -167,6 +196,26 @@ const DisplayTab = () => {
           />
         </div>
 
+        {showFilters && (
+          <div className="flex items-center gap-4">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <Select value={warehouseFilter} onValueChange={setWarehouseFilter}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Filter by warehouse" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All warehouses</SelectItem>
+                <SelectItem value="SC">SC</SelectItem>
+                <SelectItem value="DI">DI</SelectItem>
+                <SelectItem value="DD">DD</SelectItem>
+                <SelectItem value="JM">JM</SelectItem>
+                <SelectItem value="HW">HW</SelectItem>
+                <SelectItem value="BH">BH</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
             {filteredSamples.length} sample{filteredSamples.length !== 1 ? 's' : ''} found
@@ -206,64 +255,96 @@ const DisplayTab = () => {
           </div>
           <h3 className="font-semibold mb-2">No Samples Found</h3>
           <p className="text-muted-foreground">
-            {searchTerm ? 'Try adjusting your search terms.' : 'No samples have been uploaded yet.'}
+            {searchTerm || warehouseFilter ? 'Try adjusting your search or filter.' : 'No samples have been uploaded yet.'}
           </p>
         </div>
       ) : (
-        <div className={`grid ${getColumnClass()} gap-4`}>
-          {filteredSamples.map((sample) => (
-            <Dialog key={sample.id}>
-              <DialogTrigger asChild>
-                <Card 
-                  className="cursor-pointer hover:shadow-lg transition-all overflow-hidden"
-                  onClick={() => handleImageClick(sample)}
-                >
-                  <div className="aspect-square bg-muted overflow-hidden">
-                    <img
-                      src={sample.image_url}
-                      alt={`Sample ${sample.grn}`}
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
-                      loading="lazy"
-                    />
-                  </div>
-                </Card>
-              </DialogTrigger>
+        <div className="space-y-6">
+          {Object.entries(
+            filteredSamples.reduce((groups: Record<string, Sample[]>, sample) => {
+              const date = new Date(sample.upload_date).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              });
+              if (!groups[date]) groups[date] = [];
+              groups[date].push(sample);
+              return groups;
+            }, {})
+          ).map(([date, dateSamples]) => (
+            <div key={date} className="space-y-4">
+              <div className="flex items-center gap-4">
+                <h3 className="text-lg font-semibold text-foreground">{date}</h3>
+                <div className="flex-1 h-px bg-border"></div>
+                <Badge variant="secondary" className="text-xs">
+                  {dateSamples.length} sample{dateSamples.length !== 1 ? 's' : ''}
+                </Badge>
+              </div>
               
-              <DialogContent className="max-w-4xl w-full h-[90vh] flex flex-col">
-                <DialogHeader className="flex-shrink-0">
-                  <DialogTitle className="flex items-center justify-between">
-                    <span>Sample Details</span>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => navigateImage('prev')}
-                        disabled={filteredSamples.length <= 1}
+              <div className={`grid ${getColumnClass()} gap-4`}>
+                {dateSamples.map((sample) => (
+                  <Dialog key={sample.id}>
+                    <DialogTrigger asChild>
+                      <Card 
+                        className="cursor-pointer hover:shadow-lg transition-all overflow-hidden"
+                        onClick={() => handleImageClick(sample)}
                       >
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => navigateImage('next')}
-                        disabled={filteredSamples.length <= 1}
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </DialogTitle>
-                </DialogHeader>
-                
-                <div className="flex-1 bg-muted rounded-lg overflow-hidden">
-                  <img
-                    src={selectedImage?.image_url}
-                    alt={`Sample ${selectedImage?.grn}`}
-                    className="w-full h-full object-contain"
-                    style={{ userSelect: 'none', pointerEvents: 'none' }}
-                  />
-                </div>
-              </DialogContent>
-            </Dialog>
+                        <div className="aspect-square bg-muted overflow-hidden">
+                          <img
+                            src={sample.image_url}
+                            alt={`Sample ${sample.grn}`}
+                            className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
+                            loading="lazy"
+                          />
+                        </div>
+                        {sample.warehouse && (
+                          <div className="p-2">
+                            <Badge variant="outline" className="text-xs">
+                              {sample.warehouse}
+                            </Badge>
+                          </div>
+                        )}
+                      </Card>
+                    </DialogTrigger>
+                    
+                    <DialogContent className="max-w-4xl w-full h-[90vh] flex flex-col">
+                      <DialogHeader className="flex-shrink-0">
+                        <DialogTitle className="flex items-center justify-between">
+                          <span>Sample Details</span>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => navigateImage('prev')}
+                              disabled={filteredSamples.length <= 1}
+                            >
+                              <ChevronLeft className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => navigateImage('next')}
+                              disabled={filteredSamples.length <= 1}
+                            >
+                              <ChevronRight className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </DialogTitle>
+                      </DialogHeader>
+                      
+                      <div className="flex-1 bg-muted rounded-lg overflow-hidden">
+                        <img
+                          src={selectedImage?.image_url}
+                          alt={`Sample ${selectedImage?.grn}`}
+                          className="w-full h-full object-contain"
+                          style={{ userSelect: 'none', pointerEvents: 'none' }}
+                        />
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       )}

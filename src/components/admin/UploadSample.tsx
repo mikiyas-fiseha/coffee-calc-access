@@ -14,6 +14,7 @@ const UploadSample = () => {
     grade: '',
     totalValue: '',
     ownerName: '',
+    warehouse: '',
     date: new Date().toISOString().split('T')[0],
   });
   const [imageFiles, setImageFiles] = useState<File[]>([]);
@@ -24,7 +25,7 @@ const UploadSample = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
@@ -106,10 +107,11 @@ const UploadSample = () => {
         return supabase
           .from('samples')
           .insert({
-            grn: formData.grn || null,
+            grn: formData.grn || `IMG_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             grade: formData.grade || null,
             total_value: formData.totalValue ? parseFloat(formData.totalValue) : null,
             owner_name: formData.ownerName || null,
+            warehouse: formData.warehouse || null,
             image_url: imageUrl,
             uploaded_by: user.id,
             upload_date: formData.date,
@@ -135,6 +137,7 @@ const UploadSample = () => {
         grade: '',
         totalValue: '',
         ownerName: '',
+        warehouse: '',
         date: new Date().toISOString().split('T')[0],
       });
       setImageFiles([]);
@@ -302,7 +305,26 @@ const UploadSample = () => {
               />
             </div>
 
-            <div className="space-y-2 md:col-span-2">
+            <div className="space-y-2">
+              <Label htmlFor="warehouse">Warehouse <span className="text-muted-foreground">(Optional)</span></Label>
+              <select
+                id="warehouse"
+                name="warehouse"
+                value={formData.warehouse}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-input rounded-md text-sm bg-background"
+              >
+                <option value="">Select warehouse</option>
+                <option value="SC">SC</option>
+                <option value="DI">DI</option>
+                <option value="DD">DD</option>
+                <option value="JM">JM</option>
+                <option value="HW">HW</option>
+                <option value="BH">BH</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="date">Date</Label>
               <Input
                 id="date"
