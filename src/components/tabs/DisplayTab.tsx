@@ -48,7 +48,7 @@ const DisplayTab = () => {
     // Filter samples based on search term and warehouse
     const filtered = samples.filter(sample => {
       const matchesSearch = sample.grn.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesWarehouse = !warehouseFilter || sample.warehouse === warehouseFilter;
+      const matchesWarehouse = !warehouseFilter || warehouseFilter === 'all' || sample.warehouse === warehouseFilter;
       return matchesSearch && matchesWarehouse;
     });
     setFilteredSamples(filtered);
@@ -204,7 +204,7 @@ const DisplayTab = () => {
                 <SelectValue placeholder="Filter by warehouse" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All warehouses</SelectItem>
+                <SelectItem value="all">All warehouses</SelectItem>
                 <SelectItem value="SC">SC</SelectItem>
                 <SelectItem value="DI">DI</SelectItem>
                 <SelectItem value="DD">DD</SelectItem>
