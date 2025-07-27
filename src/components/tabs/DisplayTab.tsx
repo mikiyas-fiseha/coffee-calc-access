@@ -26,7 +26,7 @@ const DisplayTab = () => {
   const [samples, setSamples] = useState<Sample[]>([]);
   const [filteredSamples, setFilteredSamples] = useState<Sample[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [warehouseFilter, setWarehouseFilter] = useState('');
+  const [warehouseFilter, setWarehouseFilter] = useState('SC');
   const [columns, setColumns] = useState(2);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState<Sample | null>(null);
@@ -48,7 +48,7 @@ const DisplayTab = () => {
     // Filter samples based on search term and warehouse
     const filtered = samples.filter(sample => {
       const matchesSearch = sample.grn.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesWarehouse = !warehouseFilter || warehouseFilter === 'all' || sample.warehouse === warehouseFilter;
+      const matchesWarehouse = warehouseFilter === 'all' || sample.warehouse === warehouseFilter;
       return matchesSearch && matchesWarehouse;
     });
     setFilteredSamples(filtered);
@@ -89,8 +89,8 @@ const DisplayTab = () => {
         return;
       }
 
-      // Only show filters to regular users if setting allows it
       // Admins and super admins always see filters
+      // Regular users see filters based on admin setting
       const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin';
       setShowFilters(isAdmin || (data?.setting_value ?? true));
     } catch (error) {
@@ -196,25 +196,27 @@ const DisplayTab = () => {
           />
         </div>
 
-        {showFilters && (
-          <div className="flex items-center gap-4">
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            <Select value={warehouseFilter} onValueChange={setWarehouseFilter}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Filter by warehouse" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All warehouses</SelectItem>
-                <SelectItem value="SC">SC</SelectItem>
-                <SelectItem value="DI">DI</SelectItem>
-                <SelectItem value="DD">DD</SelectItem>
-                <SelectItem value="JM">JM</SelectItem>
-                <SelectItem value="HW">HW</SelectItem>
-                <SelectItem value="BH">BH</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+        <div className="flex items-center gap-4">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <Select 
+            value={warehouseFilter} 
+            onValueChange={setWarehouseFilter}
+            disabled={!showFilters && !(profile?.role === 'admin' || profile?.role === 'super_admin')}
+          >
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Filter by warehouse" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All warehouses</SelectItem>
+              <SelectItem value="SC">SC</SelectItem>
+              <SelectItem value="DI">DI</SelectItem>
+              <SelectItem value="DD">DD</SelectItem>
+              <SelectItem value="JM">JM</SelectItem>
+              <SelectItem value="HW">HW</SelectItem>
+              <SelectItem value="BH">BH</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
