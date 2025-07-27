@@ -65,6 +65,36 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_closing_prices: {
+        Row: {
+          closing_price: number
+          created_at: string
+          entered_by: string
+          grade_name: string
+          id: string
+          price_date: string
+          updated_at: string
+        }
+        Insert: {
+          closing_price: number
+          created_at?: string
+          entered_by: string
+          grade_name: string
+          id?: string
+          price_date: string
+          updated_at?: string
+        }
+        Update: {
+          closing_price?: number
+          created_at?: string
+          entered_by?: string
+          grade_name?: string
+          id?: string
+          price_date?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       payment_plans: {
         Row: {
           created_at: string
@@ -175,6 +205,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_current_price_range: {
+        Args: { grade_name_param: string }
+        Returns: {
+          grade_name: string
+          lower_price: number
+          upper_price: number
+          last_closing_price: number
+          last_price_date: string
+          days_without_sales: number
+        }[]
+      }
       is_admin: {
         Args: { user_id: string }
         Returns: boolean
