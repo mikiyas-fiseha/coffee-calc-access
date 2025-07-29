@@ -83,6 +83,24 @@ const InfoTab = () => {
     }
   };
 
+  // Listen for daily price updates to refresh ranges
+  useEffect(() => {
+    const channel = supabase
+      .channel('daily_price_updates')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'daily_closing_prices'
+      }, () => {
+        fetchDynamicRanges();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   const getGradeCategory = (gradeName: string) => {
     if (gradeName.startsWith('LUBPAA')) return 'LUBPAA';
     if (gradeName.startsWith('LWBP')) return 'LWBP';
@@ -233,7 +251,10 @@ const InfoTab = () => {
                             <div className="flex justify-between">
                               <span className="text-muted-foreground">Current Range:</span>
                               <span className="font-mono font-medium">
-                                {range.lower_price.toFixed(2)} - {range.upper_price.toFixed(2)}
+                                {range.lower_price && range.upper_price 
+                                  ? `${range.lower_price.toFixed(2)} - ${range.upper_price.toFixed(2)}`
+                                  : 'None'
+                                }
                               </span>
                             </div>
                             <div className="flex justify-between">

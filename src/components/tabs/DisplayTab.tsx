@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -24,7 +24,6 @@ interface Sample {
 
 const DisplayTab = () => {
   const [samples, setSamples] = useState<Sample[]>([]);
-  const [filteredSamples, setFilteredSamples] = useState<Sample[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [warehouseFilter, setWarehouseFilter] = useState('SC');
   const [columns, setColumns] = useState(2);
@@ -44,14 +43,13 @@ const DisplayTab = () => {
     }
   }, [profile]);
 
-  useEffect(() => {
-    // Filter samples based on search term and warehouse
-    const filtered = samples.filter(sample => {
+  // Optimized filtering with useMemo to prevent unnecessary re-renders
+  const filteredSamples = useMemo(() => {
+    return samples.filter(sample => {
       const matchesSearch = sample.grn.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesWarehouse = warehouseFilter === 'all' || sample.warehouse === warehouseFilter;
       return matchesSearch && matchesWarehouse;
     });
-    setFilteredSamples(filtered);
   }, [samples, searchTerm, warehouseFilter]);
 
   const fetchSamples = async () => {
@@ -63,7 +61,6 @@ const DisplayTab = () => {
 
       if (error) throw error;
       setSamples(data || []);
-      setFilteredSamples(data || []);
     } catch (error) {
       console.error('Error fetching samples:', error);
       toast({
@@ -98,12 +95,12 @@ const DisplayTab = () => {
     }
   };
 
-  const handleImageClick = (sample: Sample) => {
+  const handleImageClick = useCallback((sample: Sample) => {
     setSelectedImage(sample);
     setCurrentImageIndex(filteredSamples.findIndex(s => s.id === sample.id));
-  };
+  }, [filteredSamples]);
 
-  const navigateImage = (direction: 'prev' | 'next') => {
+  const navigateImage = useCallback((direction: 'prev' | 'next') => {
     if (!selectedImage) return;
     
     let newIndex;
@@ -115,7 +112,7 @@ const DisplayTab = () => {
     
     setCurrentImageIndex(newIndex);
     setSelectedImage(filteredSamples[newIndex]);
-  };
+  }, [selectedImage, currentImageIndex, filteredSamples]);
 
   const getColumnClass = () => {
     switch (columns) {
