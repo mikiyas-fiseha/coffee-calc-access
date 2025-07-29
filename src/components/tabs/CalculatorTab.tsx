@@ -3,16 +3,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Calculator, Coffee } from 'lucide-react';
 
 const CalculatorTab = () => {
   const [weight, setWeight] = useState<string>('');
   const [lot, setLot] = useState<string>('');
   const [pricePerFeresula, setPricePerFeresula] = useState<string>('');
-  const [weightResult, setWeightResult] = useState<number | null>(null);
-  const [lotResult, setLotResult] = useState<number | null>(null);
-  const [useWeight, setUseWeight] = useState<boolean>(true);
-  const [useLot, setUseLot] = useState<boolean>(false);
+  const [result, setResult] = useState<number | null>(null);
+  const [calculationMethod, setCalculationMethod] = useState<'weight' | 'lot'>('weight');
 
   const calculateTotal = () => {
     const priceNum = parseFloat(pricePerFeresula);
@@ -21,21 +20,17 @@ const CalculatorTab = () => {
       return;
     }
     
-    // Weight calculation: total = weight × (price / 17) × 1.155
-    if (useWeight && weight) {
+    if (calculationMethod === 'weight' && weight) {
       const weightNum = parseFloat(weight);
       if (weightNum) {
-        const weightTotal = weightNum * (priceNum / 17) * 1.155;
-        setWeightResult(weightTotal);
+        const total = weightNum * (priceNum / 17) * 1.155;
+        setResult(total);
       }
-    }
-    
-    // Lot calculation: total = (lot × 150 × price in feresula) × 1.155
-    if (useLot && lot) {
+    } else if (calculationMethod === 'lot' && lot) {
       const lotNum = parseFloat(lot);
       if (lotNum) {
-        const lotTotal = (lotNum * 150 * priceNum) * 1.155;
-        setLotResult(lotTotal);
+        const total = (lotNum * 150 * priceNum) * 1.155;
+        setResult(total);
       }
     }
   };
@@ -44,8 +39,7 @@ const CalculatorTab = () => {
     setWeight('');
     setLot('');
     setPricePerFeresula('');
-    setWeightResult(null);
-    setLotResult(null);
+    setResult(null);
   };
 
   return (
@@ -73,30 +67,24 @@ const CalculatorTab = () => {
         <CardContent className="space-y-6">
           <div className="space-y-4">
             <div className="space-y-3">
-              <Label className="text-base font-medium">Calculation Methods</Label>
-              <div className="flex gap-4">
-                <label className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={useWeight}
-                    onChange={(e) => setUseWeight(e.target.checked)}
-                    className="rounded border-gray-300"
-                  />
-                  <span className="text-sm">Weight Formula</span>
-                </label>
-                <label className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={useLot}
-                    onChange={(e) => setUseLot(e.target.checked)}
-                    className="rounded border-gray-300"
-                  />
-                  <span className="text-sm">Lot Formula</span>
-                </label>
-              </div>
+              <Label className="text-base font-medium">Calculation Method</Label>
+              <RadioGroup 
+                value={calculationMethod} 
+                onValueChange={(value: 'weight' | 'lot') => setCalculationMethod(value)}
+                className="flex gap-6"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="weight" id="weight-method" />
+                  <Label htmlFor="weight-method" className="text-sm">Weight Formula</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="lot" id="lot-method" />
+                  <Label htmlFor="lot-method" className="text-sm">Lot Formula</Label>
+                </div>
+              </RadioGroup>
             </div>
 
-            {useWeight && (
+            {calculationMethod === 'weight' && (
               <div className="space-y-2">
                 <Label htmlFor="weight">Weight (kg)</Label>
                 <Input
@@ -110,7 +98,7 @@ const CalculatorTab = () => {
               </div>
             )}
 
-            {useLot && (
+            {calculationMethod === 'lot' && (
               <div className="space-y-2">
                 <Label htmlFor="lot">Lot Quantity</Label>
                 <Input
@@ -146,7 +134,7 @@ const CalculatorTab = () => {
             <Button 
               onClick={calculateTotal}
               className="flex-1 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90"
-              disabled={!pricePerFeresula || (!useWeight && !useLot) || (useWeight && !weight) || (useLot && !lot)}
+              disabled={!pricePerFeresula || (calculationMethod === 'weight' && !weight) || (calculationMethod === 'lot' && !lot)}
             >
               Calculate
             </Button>
@@ -159,45 +147,26 @@ const CalculatorTab = () => {
             </Button>
           </div>
 
-          {(weightResult !== null || lotResult !== null) && (
+          {result !== null && (
             <div className="space-y-4">
-              {weightResult !== null && (
-                <Card className="bg-gradient-to-r from-accent/10 to-primary/10 border-accent/20">
-                  <CardContent className="pt-6">
-                    <div className="text-center">
-                      <p className="text-sm text-muted-foreground mb-2">Weight Formula Result</p>
-                      <p className="text-3xl font-bold text-foreground">
-                        {weightResult.toLocaleString('en-US', {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })} <span className="text-lg text-muted-foreground">Birr</span>
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        Includes 15.5% surcharge
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {lotResult !== null && (
-                <Card className="bg-gradient-to-r from-primary/10 to-accent/10 border-primary/20">
-                  <CardContent className="pt-6">
-                    <div className="text-center">
-                      <p className="text-sm text-muted-foreground mb-2">Lot Formula Result</p>
-                      <p className="text-3xl font-bold text-foreground">
-                        {lotResult.toLocaleString('en-US', {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })} <span className="text-lg text-muted-foreground">Birr</span>
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        Includes 15.5% surcharge
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+              <Card className="bg-gradient-to-r from-accent/10 to-primary/10 border-accent/20">
+                <CardContent className="pt-6">
+                  <div className="text-center">
+                    <p className="text-sm text-muted-foreground mb-2">
+                      {calculationMethod === 'weight' ? 'Weight Formula Result' : 'Lot Formula Result'}
+                    </p>
+                    <p className="text-3xl font-bold text-foreground">
+                      {result.toLocaleString('en-US', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })} <span className="text-lg text-muted-foreground">Birr</span>
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Includes 15.5% surcharge
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
 
               <Card className="bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800">
                 <CardContent className="pt-4">

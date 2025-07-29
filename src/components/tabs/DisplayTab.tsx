@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Search, Grid3X3, Grid2X2, Grid, Lock, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
+import { Search, Grid3X3, Grid2X2, Grid, Lock, ChevronLeft, ChevronRight, Filter, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface Sample {
@@ -33,6 +33,8 @@ const DisplayTab = () => {
   const [showFilters, setShowFilters] = useState(true);
   const { profile } = useAuth();
   const { toast } = useToast();
+  const modalRef = useRef<HTMLDivElement>(null);
+  const touchStartX = useRef<number>(0);
 
   useEffect(() => {
     if (profile?.is_paid) {
@@ -113,6 +115,73 @@ const DisplayTab = () => {
     setCurrentImageIndex(newIndex);
     setSelectedImage(filteredSamples[newIndex]);
   }, [selectedImage, currentImageIndex, filteredSamples]);
+
+  const downloadImage = useCallback(async () => {
+    if (!selectedImage) return;
+    
+    try {
+      const response = await fetch(selectedImage.image_url);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `sample-${selectedImage.grn}.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Downloaded",
+        description: `Sample ${selectedImage.grn} image downloaded successfully.`,
+      });
+    } catch (error) {
+      console.error('Download failed:', error);
+      toast({
+        variant: "destructive",
+        title: "Download Failed",
+        description: "Failed to download the image. Please try again.",
+      });
+    }
+  }, [selectedImage, toast]);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!selectedImage || filteredSamples.length <= 1) return;
+    
+    const touchEndX = e.changedTouches[0].clientX;
+    const diff = touchStartX.current - touchEndX;
+    
+    if (Math.abs(diff) > 50) { // Minimum swipe distance
+      if (diff > 0) {
+        navigateImage('next'); // Swipe left = next
+      } else {
+        navigateImage('prev'); // Swipe right = previous
+      }
+    }
+  }, [selectedImage, filteredSamples.length, navigateImage]);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    touchStartX.current = e.clientX;
+  }, []);
+
+  const handleMouseUp = useCallback((e: React.MouseEvent) => {
+    if (!selectedImage || filteredSamples.length <= 1) return;
+    
+    const mouseEndX = e.clientX;
+    const diff = touchStartX.current - mouseEndX;
+    
+    if (Math.abs(diff) > 100) { // Minimum drag distance for mouse
+      if (diff > 0) {
+        navigateImage('next'); // Drag left = next
+      } else {
+        navigateImage('prev'); // Drag right = previous
+      }
+    }
+  }, [selectedImage, filteredSamples.length, navigateImage]);
 
   const getColumnClass = () => {
     switch (columns) {
@@ -314,6 +383,14 @@ const DisplayTab = () => {
                             <Button
                               variant="ghost"
                               size="sm"
+                              onClick={downloadImage}
+                              title="Download image"
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               onClick={() => navigateImage('prev')}
                               disabled={filteredSamples.length <= 1}
                             >
@@ -331,12 +408,20 @@ const DisplayTab = () => {
                         </DialogTitle>
                       </DialogHeader>
                       
-                      <div className="flex-1 bg-muted rounded-lg overflow-hidden">
+                      <div 
+                        ref={modalRef}
+                        className="flex-1 bg-muted rounded-lg overflow-hidden cursor-pointer select-none"
+                        onTouchStart={handleTouchStart}
+                        onTouchEnd={handleTouchEnd}
+                        onMouseDown={handleMouseDown}
+                        onMouseUp={handleMouseUp}
+                        title="Swipe or drag left/right to navigate"
+                      >
                         <img
                           src={selectedImage?.image_url}
                           alt={`Sample ${selectedImage?.grn}`}
-                          className="w-full h-full object-contain"
-                          style={{ userSelect: 'none', pointerEvents: 'none' }}
+                          className="w-full h-full object-contain pointer-events-none"
+                          style={{ userSelect: 'none' }}
                         />
                       </div>
                     </DialogContent>

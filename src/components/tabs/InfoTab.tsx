@@ -177,6 +177,55 @@ const InfoTab = () => {
         <p className="text-muted-foreground">Current coffee grades & price ranges</p>
       </div>
 
+      {/* All Grades Table */}
+      <Card className="shadow-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Coffee className="h-5 w-5" />
+            All Coffee Grades Price List
+          </CardTitle>
+          <CardDescription>
+            Complete list of all coffee grades with current price ranges
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b-2 border-muted">
+                  <th className="text-left p-3 font-semibold">Grade</th>
+                  <th className="text-right p-3 font-semibold">Low Price (Birr)</th>
+                  <th className="text-right p-3 font-semibold">High Price (Birr)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  { grade: "Grade 1", low: 380, high: 420 },
+                  { grade: "Grade 2", low: 360, high: 400 },
+                  { grade: "Grade 3", low: 340, high: 380 },
+                  { grade: "Grade 4", low: 320, high: 360 },
+                  { grade: "Grade 5", low: 300, high: 340 },
+                  { grade: "UG", low: 280, high: 320 },
+                  { grade: "FAQ", low: 260, high: 300 },
+                  { grade: "Screen 12", low: 350, high: 390 },
+                  { grade: "Screen 14", low: 370, high: 410 },
+                  { grade: "Screen 15", low: 380, high: 420 },
+                  { grade: "Screen 16", low: 390, high: 430 },
+                  { grade: "Screen 17", low: 400, high: 440 },
+                  { grade: "Screen 18", low: 410, high: 450 }
+                ].map((item, index) => (
+                  <tr key={index} className="border-b border-muted/30 hover:bg-muted/20">
+                    <td className="p-3 font-medium">{item.grade}</td>
+                    <td className="p-3 text-right">{item.low.toLocaleString()}</td>
+                    <td className="p-3 text-right">{item.high.toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Market Overview */}
       <Card className="bg-gradient-to-r from-accent/10 to-primary/10 border-accent/20">
         <CardHeader>
