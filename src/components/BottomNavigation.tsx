@@ -1,24 +1,27 @@
 import React from 'react';
-import { Calculator, Image, Info, Settings } from 'lucide-react';
+import { Calculator, Image, Info, Settings, Menu } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface BottomNavigationProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
+  onMenuClick: () => void;
 }
 
-const BottomNavigation: React.FC<BottomNavigationProps> = ({ activeTab, onTabChange }) => {
+const BottomNavigation: React.FC<BottomNavigationProps> = ({ activeTab, onTabChange, onMenuClick }) => {
   const { profile } = useAuth();
+  const { t } = useLanguage();
 
   const tabs = [
-    { id: 'calculator', label: 'Cal', icon: Calculator },
-    { id: 'display', label: 'Display', icon: Image },
-    { id: 'info', label: 'Info', icon: Info },
+    { id: 'calculator', label: t.calculator, icon: Calculator },
+    { id: 'display', label: t.display, icon: Image },
+    { id: 'info', label: t.info, icon: Info },
   ];
 
   // Add admin tab only for admin/super_admin users
   if (profile?.role === 'admin' || profile?.role === 'super_admin') {
-    tabs.push({ id: 'admin', label: 'Admin', icon: Settings });
+    tabs.push({ id: 'admin', label: t.admin, icon: Settings });
   }
 
   return (
@@ -43,6 +46,15 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({ activeTab, onTabCha
             </button>
           );
         })}
+        
+        {/* Menu Button */}
+        <button
+          onClick={onMenuClick}
+          className="flex flex-col items-center justify-center p-3 rounded-lg transition-all text-muted-foreground hover:text-foreground hover:bg-muted/50"
+        >
+          <Menu className="h-5 w-5 mb-1" />
+          <span className="text-xs font-medium">{t.menu}</span>
+        </button>
       </div>
     </div>
   );

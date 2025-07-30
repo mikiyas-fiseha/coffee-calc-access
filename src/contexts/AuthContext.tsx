@@ -26,6 +26,7 @@ interface AuthContextType {
   signUp: (name: string, mobileNumber: string, password: string) => Promise<{ error: any }>;
   signIn: (mobileNumber: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<{ error: any }>;
+  resetPassword: (mobileNumber: string) => Promise<{ error: any }>;
   refreshProfile: () => Promise<void>;
 }
 
@@ -264,6 +265,39 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const resetPassword = async (mobileNumber: string) => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(
+        `${mobileNumber}@coffee-app.com`,
+        {
+          redirectTo: `${window.location.origin}/reset-password`,
+        }
+      );
+
+      if (error) {
+        toast({
+          variant: "destructive",
+          title: "Reset Password Failed",
+          description: error.message,
+        });
+      } else {
+        toast({
+          title: "Reset Email Sent",
+          description: "Check your email for password reset instructions",
+        });
+      }
+
+      return { error };
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Reset Password Failed",
+        description: error.message,
+      });
+      return { error };
+    }
+  };
+
   const value = {
     session,
     user,
@@ -272,6 +306,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signUp,
     signIn,
     signOut,
+    resetPassword,
     refreshProfile,
   };
 

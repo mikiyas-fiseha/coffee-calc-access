@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import AuthPage from './AuthPage';
 import PaymentPlansPage from './PaymentPlansPage';
 import BottomNavigation from '@/components/BottomNavigation';
+import SlideOutMenu from '@/components/SlideOutMenu';
 import CalculatorTab from '@/components/tabs/CalculatorTab';
 import DisplayTab from '@/components/tabs/DisplayTab';
 import InfoTab from '@/components/tabs/InfoTab';
@@ -11,6 +12,7 @@ import AdminTab from '@/components/tabs/AdminTab';
 const Index = () => {
   const { session, user, profile, loading, refreshProfile } = useAuth();
   const [activeTab, setActiveTab] = useState('calculator');
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // Refresh profile on mount to ensure we have the latest data
   useEffect(() => {
@@ -53,7 +55,15 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       {renderTabContent()}
-      <BottomNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+      <BottomNavigation 
+        activeTab={activeTab} 
+        onTabChange={setActiveTab}
+        onMenuClick={() => setIsMenuOpen(true)}
+      />
+      <SlideOutMenu 
+        isOpen={isMenuOpen} 
+        onClose={() => setIsMenuOpen(false)} 
+      />
     </div>
   );
 };

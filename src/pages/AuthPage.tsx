@@ -5,7 +5,9 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Coffee, Phone, Lock, User } from 'lucide-react';
+import ForgotPasswordModal from '@/components/ForgotPasswordModal';
 
 const AuthPage = () => {
   const [signUpData, setSignUpData] = useState({
@@ -20,7 +22,9 @@ const AuthPage = () => {
   });
 
   const [loading, setLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const { signUp, signIn } = useAuth();
+  const { t } = useLanguage();
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,20 +71,20 @@ const AuthPage = () => {
           <CardContent>
             <Tabs defaultValue="signin" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="signin">Sign In</TabsTrigger>
-                <TabsTrigger value="signup">Sign Up</TabsTrigger>
+                <TabsTrigger value="signin">{t.signIn}</TabsTrigger>
+                <TabsTrigger value="signup">{t.signUp}</TabsTrigger>
               </TabsList>
               
               <TabsContent value="signin">
                 <form onSubmit={handleSignIn} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="signin-mobile">Mobile Number</Label>
+                    <Label htmlFor="signin-mobile">{t.mobileNumber}</Label>
                     <div className="relative">
                       <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="signin-mobile"
                         type="tel"
-                        placeholder="Enter your mobile number"
+                        placeholder={t.mobileNumber}
                         className="pl-10"
                         value={signInData.mobileNumber}
                         onChange={(e) => setSignInData({ ...signInData, mobileNumber: e.target.value })}
@@ -90,13 +94,13 @@ const AuthPage = () => {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="signin-password">Password</Label>
+                    <Label htmlFor="signin-password">{t.password}</Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="signin-password"
                         type="password"
-                        placeholder="Enter your password"
+                        placeholder={t.password}
                         className="pl-10"
                         value={signInData.password}
                         onChange={(e) => setSignInData({ ...signInData, password: e.target.value })}
@@ -105,12 +109,23 @@ const AuthPage = () => {
                     </div>
                   </div>
                   
+                  <div className="text-center">
+                    <Button
+                      type="button"
+                      variant="link"
+                      onClick={() => setShowForgotPassword(true)}
+                      className="text-sm"
+                    >
+                      {t.forgotPassword}
+                    </Button>
+                  </div>
+                  
                   <Button
                     type="submit"
                     className="w-full bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90"
                     disabled={loading}
                   >
-                    {loading ? 'Signing In...' : 'Sign In'}
+                    {loading ? `${t.loading}` : t.signIn}
                   </Button>
                 </form>
               </TabsContent>
@@ -118,13 +133,13 @@ const AuthPage = () => {
               <TabsContent value="signup">
                 <form onSubmit={handleSignUp} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="signup-name">Full Name</Label>
+                    <Label htmlFor="signup-name">{t.name}</Label>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="signup-name"
                         type="text"
-                        placeholder="Enter your full name"
+                        placeholder={t.name}
                         className="pl-10"
                         value={signUpData.name}
                         onChange={(e) => setSignUpData({ ...signUpData, name: e.target.value })}
@@ -134,13 +149,13 @@ const AuthPage = () => {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="signup-mobile">Mobile Number</Label>
+                    <Label htmlFor="signup-mobile">{t.mobileNumber}</Label>
                     <div className="relative">
                       <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="signup-mobile"
                         type="tel"
-                        placeholder="Enter your mobile number"
+                        placeholder={t.mobileNumber}
                         className="pl-10"
                         value={signUpData.mobileNumber}
                         onChange={(e) => setSignUpData({ ...signUpData, mobileNumber: e.target.value })}
@@ -150,13 +165,13 @@ const AuthPage = () => {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="signup-password">Password</Label>
+                    <Label htmlFor="signup-password">{t.password}</Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="signup-password"
                         type="password"
-                        placeholder="Create a password"
+                        placeholder={t.password}
                         className="pl-10"
                         value={signUpData.password}
                         onChange={(e) => setSignUpData({ ...signUpData, password: e.target.value })}
@@ -170,13 +185,18 @@ const AuthPage = () => {
                     className="w-full bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90"
                     disabled={loading}
                   >
-                    {loading ? 'Creating Account...' : 'Create Account'}
+                    {loading ? `${t.loading}` : t.signUp}
                   </Button>
                 </form>
               </TabsContent>
             </Tabs>
           </CardContent>
         </Card>
+        
+        <ForgotPasswordModal
+          isOpen={showForgotPassword}
+          onClose={() => setShowForgotPassword(false)}
+        />
       </div>
     </div>
   );
